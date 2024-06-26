@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Java project to Azure Function App - fnc-learn-azure-function
 
 on:
@@ -18,22 +21,24 @@ jobs:
       id-token: write # This is required for requesting the JWT
 
     steps:
-      - name: Checkout Repository
+      - name: 'Checkout GitHub Action'
         uses: actions/checkout@v4
 
-      - name: Setup Java SDK ${{ env.JAVA_VERSION }}
+      - name: Setup Java Sdk ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Install Azure Functions Core Tools
-        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+        run: |
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Display host.json
         run: cat ./src/main/azure/host.json
 
-      - name: Restore Project Dependencies and Build
+      - name: 'Restore Project Dependencies Using Mvn'
+        shell: bash
         run: |
           pushd './${{ env.PACKAGE_DIRECTORY }}'
           mvn clean package
@@ -42,14 +47,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5045EDBA81AC4C23B8B05F1C2488CD67 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7FE0F19B192B4A55B61839E79C17DC32 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_17BE4E80E6AC4C2EB2F8DB952F05EC16 }}
 
-      - name: Deploy to Azure Function App
+      - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
         id: fa
         with:
-          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          app-name: 'fnc-learn-azure-function'
+          slot-name: 'Production'
           package: '${{ env.PACKAGE_DIRECTORY }}'
           respect-pom-xml: true
