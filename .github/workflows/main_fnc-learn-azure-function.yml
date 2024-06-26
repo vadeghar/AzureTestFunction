@@ -34,6 +34,9 @@ jobs:
         run: |
           npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
+      - name: Display host.json
+        run: cat ./src/main/azure/host.json
+
       - name: 'Restore Project Dependencies Using Mvn'
         shell: bash
         run: |
