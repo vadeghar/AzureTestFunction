@@ -1,0 +1,24 @@
+{
+    "version": "2.0",
+    "extensionBundle": {
+        "id": "Microsoft.Azure.Functions.ExtensionBundle",
+        "version": "[2.6 .* , 3.0.0)"
+    },
+    "extensions.eventHubs.maxEventBatchSize": 100,
+    "functionTimeout": "00:10:00",
+    "logging": {
+        "applicationInsights": {
+            "samplingSettings": {
+                "isEnabled": true
+            }
+        },
+        "fileLoggingMode": "always",
+        "LogLevel": {
+            "default": "Information",
+            "Host. Results": "None",
+            "Function": "Information",
+            "Function. emailUpdateOkta": "Information",
+            "Host. Aggregator": "None"
+        }
+    }
+}
