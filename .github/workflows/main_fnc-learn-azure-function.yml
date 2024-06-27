@@ -44,6 +44,10 @@ jobs:
           mvn clean package
           popd
 
+      - name: List Directory Contents
+        run: |
+          ls -R ./${{ env.PACKAGE_DIRECTORY }}/target
+
       - name: Verify Build Output Directory
         run: |
           if [ ! -d "./${{ env.PACKAGE_DIRECTORY }}/target/azure-functions/${{ env.AZURE_FUNCTIONAPP_NAME }}" ]; then
