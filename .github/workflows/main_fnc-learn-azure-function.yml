@@ -43,6 +43,18 @@ jobs:
           pushd './${{ env.PACKAGE_DIRECTORY }}'
           mvn clean package
           popd
+
+      - name: Archive Files
+        run: |
+          mkdir -p package
+          cd './${{ env.PACKAGE_DIRECTORY }}/target/azure-functions/${{ env.AZURE_FUNCTIONAPP_NAME }}'
+          zip -r ../../../../package/${{ env.AZURE_FUNCTIONAPP_NAME }}.zip .
+
+      - name: Publish Pipeline Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${AZURE_FUNCTIONAPP_NAME}
+          path: ./package/${AZURE_FUNCTIONAPP_NAME}.zip
       
       - name: Login to Azure
         uses: azure/login@v1
@@ -51,11 +63,18 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7FE0F19B192B4A55B61839E79C17DC32 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_17BE4E80E6AC4C2EB2F8DB952F05EC16 }}
 
-      - name: 'Run Azure Functions Action'
-        uses: Azure/functions-action@v1
-        id: fa
-        with:
-          app-name: 'fnc-learn-azure-function'
-          slot-name: 'Production'
-          package: '${{ env.PACKAGE_DIRECTORY }}'
-          respect-pom-xml: true
+      - name: Upload to Azure Storage
+        run: |
+          az storage blob upload --account-name ${{ env.AZURE_STORAGE_ACCOUNT }} --container-name ${{ env.AZURE_STORAGE_CONTAINER }} --name ${{ env.AZURE_FUNCTIONAPP_NAME }}.zip --file ./package/${{ env.AZURE_FUNCTIONAPP_NAME }}.zip --auth-mode key
+          sas_token=$(az storage blob generate-sas --account-name ${{ env.AZURE_STORAGE_ACCOUNT }} --container-name ${{ env.AZURE_STORAGE_CONTAINER }} --name ${{ env.AZURE_FUNCTIONAPP_NAME }}.zip --permissions r --expiry 2025-06-26 --output tsv)
+          blob_url=$(az storage blob url --account-name ${{ env.AZURE_STORAGE_ACCOUNT }} --container-name ${{ env.AZURE_STORAGE_CONTAINER }} --name ${{ env.AZURE_FUNCTIONAPP_NAME }}.zip --output tsv)
+          full_blob_url="$blob_url?$sas_token"
+          echo "##[set-output name=blob-url;]$full_blob_url"
+
+      - name: Update Function App Setting
+        run: |
+          az functionapp config appsettings set --name ${{ env.AZURE_FUNCTIONAPP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --settings "WEBSITE_RUN_FROM_PACKAGE=${{ steps.upload-to-azure-storage.outputs.blob-url }}"
+
+      - name: Restart Function App
+        run: |
+          az functionapp restart --name ${{ env.AZURE_FUNCTIONAPP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
