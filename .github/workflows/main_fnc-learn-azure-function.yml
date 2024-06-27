@@ -1,61 +1,52 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Java project to Azure Function App - fnc-learn-azure-function
+name: Build and Deploy Azure Function App
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
-
-env:
-  AZURE_FUNCTIONAPP_NAME: AzureTestFunction # set this to your function app name on Azure
-  PACKAGE_DIRECTORY: './target/azure-functions' # set this to the directory which contains the built package
-  JAVA_VERSION: '11' # set this to the java version to use
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write # This is required for requesting the JWT
-
+    
+    env:
+      AZURE_SUBSCRIPTION_ID: f8b590ca-1ac0-42b2-a7c6-fac0e6506885
+      AZURE_TENANT_ID: 71230159-a9b7-45c9-a0f0-49c0bac0962b
+      AZURE_CLIENT_ID: 80112422-9173-4035-bda4-9dd7c4248bc9
+      AZURE_CLIENT_SECRET: bd151244-0cef-46d3-95d1-65128c4d31a0
+      JAVA_VERSION: '11'
+    
     steps:
-      - name: 'Checkout GitHub Action'
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Setup Java Sdk ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'adopt'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Install Azure Functions Core Tools
-        run: |
-          npm install -g azure-functions-core-tools@4 --unsafe-perm true
-
-      - name: Display host.json
-        run: cat ./src/main/azure/host.json
-
-      - name: 'Restore Project Dependencies Using Mvn'
-        shell: bash
-        run: |
-          pushd './'
-          mvn clean package
-          popd
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5045EDBA81AC4C23B8B05F1C2488CD67 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7FE0F19B192B4A55B61839E79C17DC32 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_17BE4E80E6AC4C2EB2F8DB952F05EC16 }}
-
-      - name: 'Run Azure Functions Action'
-        uses: Azure/functions-action@v1
-        id: fa
-        with:
-          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-          slot-name: 'Production'
-          package: ${{ env.PACKAGE_DIRECTORY }}
-          respect-pom-xml: true
+    - name: Setup Java Sdk ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: ${{ env.JAVA_VERSION }}
+        
+    - name: Build with Maven
+      run: mvn clean package
+      
+    - name: Set up Azure CLI
+      uses: azure/CLI@v1
+      with:
+        azcliversion: latest
+        
+    - name: Deploy Function App
+      run: |
+        az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+        az deployment group create --name MyAppDeployment --resource-group laks-fns-learn --template-file azuredeploy.json --parameters @azuredeploy.parameters.json --verbose
+        
+    - name: Install Azure Functions Core Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install azure-functions-core-tools
+    
+    - name: Deploy to Azure Function App
+      env:
+        FUNCTIONAPP_NAME: fnc-learn-azure-function
+      run: |
+        cd $GITHUB_WORKSPACE
+        func azure functionapp publish $FUNCTIONAPP_NAME --force
